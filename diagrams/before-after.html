@@ -1,0 +1,179 @@
+<title>Signal-Driven Outbound — Before vs Now</title>
+<style>
+:root{
+  --bg:#0E1116;--panel:#151B23;--panel2:#1A2129;--line:#2A3240;--line2:#3A4556;
+  --tx:#E8EAED;--tx2:#9AA4B2;--tx3:#6E7681;
+  --now:#4CC38A;--was:#E5534B;--base:#E5B454;--hot:#FF8A3D;--todo:#7AA2F7;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:var(--sans);margin:0;line-height:1.5}
+.wrap{max-width:1160px;margin:0 auto;padding:40px 26px 80px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--todo)}
+h1{font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-.02em;margin:6px 0 8px;text-wrap:balance}
+.sub{color:var(--tx2);max-width:76ch;margin:0 0 28px;font-size:15px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+/* before/after strip */
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:36px}
+.card{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:18px 20px}
+.card h2{font-size:13px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+.card .tag{font-size:10px;padding:2px 8px;border-radius:3px;font-weight:700}
+.was .tag{background:rgba(229,83,75,.16);color:var(--was)} .now .tag{background:rgba(76,195,138,.15);color:var(--now)}
+.card .lede{font-size:13px;color:var(--tx3);margin:0 0 12px}
+.card ul{margin:0;padding-left:16px;font-size:13.5px;color:var(--tx2)} .card li{margin:5px 0}
+.card b{color:var(--tx)}
+.metric{font-family:var(--mono);font-variant-numeric:tabular-nums}
+/* pipeline */
+h3.sec{font-size:12px;font-family:var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--tx2);margin:34px 0 12px}
+.layer{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:10px;overflow:hidden}
+.lhead{display:flex;align-items:baseline;gap:12px;padding:11px 16px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.lnum{font-family:var(--mono);font-size:11px;color:var(--now);letter-spacing:.12em}
+.lhead h4{font-size:15px;margin:0;font-weight:700}
+.lhead .d{font-size:12px;color:var(--tx3);margin-left:auto}
+.nodes{display:grid;gap:1px;background:var(--line);grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+.node{background:var(--panel);padding:12px 15px;min-width:0}
+.node h5{font-size:13px;margin:0 0 3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.node p{font-size:12px;color:var(--tx2);margin:0}
+.node code{font-family:var(--mono);font-size:11px;color:var(--tx);background:var(--panel2);padding:0 4px;border-radius:2px}
+.chip{font-family:var(--mono);font-size:9px;letter-spacing:.06em;padding:2px 6px;border-radius:2px;text-transform:uppercase;white-space:nowrap}
+.c-live{background:rgba(76,195,138,.15);color:var(--now)}
+.c-todo{background:transparent;border:1px solid var(--line2);color:var(--todo)}
+.c-base{background:rgba(229,180,84,.14);color:var(--base)}
+.c-hot{background:rgba(255,138,61,.14);color:var(--hot)}
+.flow{text-align:center;color:var(--tx3);font-family:var(--mono);font-size:11px;letter-spacing:.1em;padding:5px 0}
+.formula{font-family:var(--mono);font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:11px 14px;margin:0;color:var(--tx);overflow-x:auto;white-space:nowrap}
+.formula b{color:var(--hot)}
+/* unfinished */
+.gaps{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}
+.gap{border:1px dashed var(--line2);border-radius:10px;background:rgba(122,162,247,.04);padding:16px 18px}
+.gap h4{font-size:13px;margin:0 0 10px;color:var(--todo);font-family:var(--mono);letter-spacing:.04em}
+.gap ul{margin:0;padding-left:16px;font-size:12.5px;color:var(--tx2)} .gap li{margin:5px 0}
+.gap b{color:var(--tx)}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-family:var(--mono);font-size:11px;color:var(--tx2);margin:18px 0 0}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+footer{margin-top:40px;font-family:var(--mono);font-size:11px;color:var(--tx3)}
+@media(max-width:680px){.ba,.gaps{grid-template-columns:1fr}}
+</style>
+
+<div class="wrap">
+<h2 class="sr-only">Before-and-after architecture of a signal-driven B2B outbound engine, with unfinished work flagged upstream and downstream.</h2>
+<div class="eyebrow">Case study · B2B recruitment agency (CZ/SK) · signal-driven demand capture</div>
+<h1>From spray-and-pray to a signal-driven outbound engine</h1>
+<p class="sub">The old motion blasted a cold CRM list and stalled from list exhaustion. The rebuild treats <b>buying signals</b> as the product: a warehouse ingests them, a scoring brain decides <b>who + when</b>, and a gate makes sure a human is never run over. Below: what it was, what it is now, and the honest unfinished edges on both ends.</p>
+
+<div class="ba">
+  <div class="card was">
+    <h2><span class="tag">BEFORE</span> spray &amp; pray</h2>
+    <p class="lede">Volume-first. Three disconnected tools, manual lists, no memory.</p>
+    <ul>
+      <li>Blast the whole CRM cold → <b class="metric">~2.6%</b> reply; a mis-targeted trigger campaign → <b class="metric">0.17%</b></li>
+      <li>Campaign sat at <b>~0 sends for 9 days</b> — list exhaustion (the real bottleneck)</li>
+      <li>3 tools stitched by hand (list-builder + 2 senders), <b>~€800/mo</b></li>
+      <li>No signal capture, no scoring, no suppression — every send equal weight</li>
+      <li>CRM: <b class="metric">34%</b> empty shells, duplicate & mother/daughter orgs, owner conflicts</li>
+      <li>Placement track record stuck in a <b>manual spreadsheet</b></li>
+    </ul>
+  </div>
+  <div class="card now">
+    <h2><span class="tag">NOW</span> signal-driven</h2>
+    <p class="lede">One warehouse of truth. Signals scored, stacked, decayed, gated, routed.</p>
+    <ul>
+      <li>Two <b>first-party alpha signals</b>: past-client re-sell + live hiring — un-buyable, the moat</li>
+      <li>Score = <b>weight × time-decay × stacking</b>; a single weak signal waits, a stack fires</li>
+      <li><b>Two lanes:</b> cold → tiered sequences · hot → a human, before 9am</li>
+      <li>Suppression gate: open deal / recent human touch / do-not-contact / cooldown — deterministic, AI only for free-text notes</li>
+      <li>Validated market from <b>national-register open data</b>: <b class="metric">38k</b> accounts, tiered by industry code</li>
+      <li>Runs <b>24/7 in the cloud</b>; tool spend cut <b class="metric">€800→€500</b></li>
+    </ul>
+  </div>
+</div>
+
+<h3 class="sec">The engine · left-to-right</h3>
+
+<div class="layer">
+  <div class="lhead"><span class="lnum">1</span><h4>Signal sources</h4><span class="d">first-party where it counts</span></div>
+  <div class="nodes">
+    <div class="node"><h5>Website de-anon <span class="chip c-live">live</span></h5><p>visitor → company via IP/pixel</p></div>
+    <div class="node"><h5>Own-content engagement <span class="chip c-live">live</span></h5><p>who engages the team's posts</p></div>
+    <div class="node"><h5>Hiring posts <span class="chip c-todo">gated</span></h5><p>scrape → LLM extract → domain resolve</p></div>
+    <div class="node"><h5>Register open-data <span class="chip c-todo">designed</span></h5><p>gov vacancy feed, keyed by company id</p></div>
+    <div class="node"><h5>Past-client base <span class="chip c-base">+base</span></h5><p>every prior placement = durable warm</p></div>
+  </div>
+</div>
+<div class="flow">▼ rows · ids · timestamps</div>
+
+<div class="layer">
+  <div class="lhead"><span class="lnum">2</span><h4>Warehouse (single source of truth)</h4><span class="d">Postgres · everything else mirrors it</span></div>
+  <div class="nodes">
+    <div class="node"><h5>Accounts &amp; contacts</h5><p>identity-resolved by company id + domain</p></div>
+    <div class="node"><h5>Validated market (TAM)</h5><p>national registers → industry tier</p></div>
+    <div class="node"><h5>Signals ledger</h5><p>deduped, unique per source event</p></div>
+    <div class="node"><h5>Views = the interface</h5><p>scores, warm base, health — read by the automations</p></div>
+  </div>
+</div>
+<div class="flow">▼ weights · decay · gate flags</div>
+
+<div class="layer">
+  <div class="lhead"><span class="lnum">3</span><h4>Scoring brain — who + when</h4><span class="d">decides; never sprays</span></div>
+  <div class="nodes" style="grid-template-columns:1fr">
+    <div class="node">
+      <div class="formula">score = <b>base</b> (past-client, no decay) + Σ<sub>type</sub> min( Σ weight×<b>decay</b>, cap )&nbsp;&nbsp;·&nbsp;&nbsp;decay 1.5× (&lt;24h) → 1.0× (2wk) → 0.3× (&gt;30d)&nbsp;&nbsp;·&nbsp;&nbsp;HOT ≥100 · WARM ≥50</div>
+      <p style="margin-top:9px;font-size:12.5px;color:var(--tx2)"><b style="color:var(--tx)">Gate (deterministic):</b> open deal · human touch ≤60d · do-not-contact · 14-day cross-channel cooldown → suppressed. <b style="color:var(--tx)">AI</b> only reads free-text notes for a buried "don't contact." Stacking means HOT structurally needs ≥2 independent evidences — no single-signal false alarms.</p>
+    </div>
+  </div>
+</div>
+<div class="flow">▼ two lanes</div>
+
+<div class="layer">
+  <div class="lhead"><span class="lnum">4</span><h4>Routing</h4><span class="d">cold → machine · hot → human</span></div>
+  <div class="nodes" style="grid-template-columns:1fr 1fr">
+    <div class="node"><h5>Cold lane → sequences <span class="chip c-todo">gated</span></h5><p>role → tier (T1/T2/T3) → auto-enroll; pre-enrollment gate + <b>research-driven icebreaker</b>. Ambiguous → enroll-but-pause + a review task.</p></div>
+    <div class="node"><h5>Hot lane → a person <span class="chip c-hot">live</span></h5><p>stacked account → best contact → JIT gate → task to the closer, same morning, with the signal + why-now.</p></div>
+  </div>
+</div>
+<div class="flow">▼ writes back</div>
+
+<div class="layer">
+  <div class="lhead"><span class="lnum">5</span><h4>Execution &amp; feedback</h4><span class="d">CRM stays honest</span></div>
+  <div class="nodes">
+    <div class="node"><h5>Sequencer <span class="chip c-live">live</span></h5><p>tiered email + LinkedIn, gender-safe localized copy</p></div>
+    <div class="node"><h5>CRM write-back <span class="chip c-live">live</span></h5><p>every touch logged → feeds the 60-day gate</p></div>
+    <div class="node"><h5>Cooldown ledger <span class="chip c-live">live</span></h5><p>no account hit twice across channels</p></div>
+    <div class="node"><h5>Flywheel <span class="chip c-todo">planned</span></h5><p>reweight signals after N closes</p></div>
+  </div>
+</div>
+
+<h3 class="sec">Honest unfinished edges — both ends</h3>
+<div class="gaps">
+  <div class="gap">
+    <h4>▲ Upstream — capture / supply</h4>
+    <ul>
+      <li><b>Hiring-post flow gated</b> on a paid-scraper top-up (one external dependency)</li>
+      <li><b>Open-data vacancy ingest</b> designed, not wired (the biggest, cleanest source)</li>
+      <li><b>Net-new tiering</b> — resolve unknown companies → industry code → tier (register lookup, not yet automated)</li>
+      <li><b>Proof-bank</b> still a spreadsheet — the credibility numbers that would sharpen copy</li>
+      <li><b>Competitive-posture layer</b> designed but <b>parked pending a lawyer's sign-off</b> (unfair-competition law)</li>
+    </ul>
+  </div>
+  <div class="gap">
+    <h4>▼ Downstream — decision / close</h4>
+    <ul>
+      <li><b>Cold lane inactive</b> — sequences built &amp; tested, held until capture is live</li>
+      <li><b>Localized declension</b> (name/role grammar) needs one config pass + spot-check</li>
+      <li><b>Feedback loop</b> — no reweighting from outcomes yet (needs ~30–50 closes)</li>
+      <li><b>CRM consolidation</b> — merge worklists generated; the human owner-assignment review is pending</li>
+      <li><b>Deliverability handshake</b> (external email-verify → sequencer status) not wired</li>
+    </ul>
+  </div>
+</div>
+
+<div class="legend">
+  <span><i class="dot" style="background:var(--now)"></i>live</span>
+  <span><i class="dot" style="background:var(--base)"></i>durable base</span>
+  <span><i class="dot" style="background:var(--hot)"></i>hot lane</span>
+  <span><i class="dot" style="background:var(--todo);opacity:.7"></i>gated / designed / planned</span>
+</div>
+
+<footer>Anonymized architecture case study · stack: Postgres warehouse · workflow engine (n8n) · LLM extraction · neural search · CRM + sequencer · national-register open data · no client data or secrets in this document</footer>
+</div>

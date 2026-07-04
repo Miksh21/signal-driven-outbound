@@ -1,0 +1,33 @@
+# Five decisions I'm proud of
+
+Building fast is easy. These are the calls that made the system *good* — and most of them were about choosing restraint.
+
+## 1 · Open data beats scraping
+
+The obvious way to map a market is to scrape job boards. I didn't. A government business register publishes the same universe as **open data**, keyed by company registration ID.
+
+That one choice solved three problems simultaneously: it's **legal** (no terms-of-service or database-right exposure), it's **free**, and — because every record carries the registration ID — it matches to the CRM and the market map **deterministically**, not by fuzzy company-name guessing that fails ~90% of the time. When a clean, boring, authoritative source exists, use it.
+
+## 2 · Don't AI a boolean
+
+"Does this account have an open deal?" is a database question. "Was there a human touch in the last 60 days?" is a database question. Running a language model to answer them would be slower, cost money per call, be non-deterministic, and — worst — could *hallucinate a wrong answer to a question the data already knows for certain.*
+
+So the gate is deterministic SQL. The LLM is reserved for the one job only it can do: reading a free-text note for a human intention no column captures. The rule extends everywhere: **use the cheapest tool that gives a correct, auditable answer, and save the expensive, fuzzy one for genuinely fuzzy problems.**
+
+## 3 · Legal-first, then build
+
+The most tempting feature was competitor-displacement: detect that a company already uses a rival, and pitch against them. Powerful — and a minefield.
+
+Before writing a line, I read the relevant unfair-competition statutes (comparative advertising, disparagement, trade-secret law). The conclusions changed the design: **source everything from public data** (never a leaked document), and **critique the *method*, not the named competitor** — which sidesteps the disparagement and trade-secret risks entirely. Then I **parked the whole feature pending a lawyer's sign-off**, and shipped everything around it. Speed that creates liability isn't speed.
+
+## 4 · Spend human attention like it's expensive — because it is
+
+The decay-and-stacking math has one job: make sure a person is only ever pointed at an account where *two independent signals corroborate each other.* A single stray event never reaches a human. This is the difference between "an alert system people learn to ignore" and "a queue people trust." The scarcest resource sets the design constraint.
+
+## 5 · The data model owns the logic
+
+Scoring, gating, and health metrics live **in the warehouse** as views and functions — not inside any tool. The tools (CRM, sequencer, workflow engine) are interchangeable front-ends that read those views. This is the opposite of the usual "logic trapped inside a SaaS" trap: the intelligence is portable, the vendors are disposable, and the data stays consistent because there's exactly one place it's computed.
+
+---
+
+**The throughline:** every one of these is a *restraint* — a cheaper tool, a public source, a parked feature, a higher bar before acting. Anyone can wire APIs together. Knowing which wire *not* to connect is the actual skill.
