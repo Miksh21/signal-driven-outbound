@@ -20,7 +20,14 @@ The old motion was volume-first: blast the whole CRM cold, wire three tools toge
 - Campaigns stalled at **~0 sends for 9 days** — list exhaustion. The bottleneck was never the copy; it was **demand capture.**
 - No signal capture, no scoring, no suppression. Every send weighted equally.
 
-So the rebuild treats **signals as the product.**
+So the rebuild treats **signals as the product** — and specifically the signals a competitor *can't buy*:
+
+| Signal-led ✅ | Reply | Volume-led ❌ | Reply |
+|---|---|---|---|
+| Past-placement base (first-party) | **16.9%** | Mass CRM blast | 2.63% |
+| Active job posting (extracted, in the copy) | **15.9%** | Bought trigger, not used in the copy | 0.17% |
+
+Same market, same senders — a ~6× spread decided entirely by *which signal* and *whether it's the spine of the message*. The originality test behind that left column ("can a competitor buy this exact signal off the shelf?") and the flywheel it creates: [`docs/alpha-signals.md`](docs/alpha-signals.md).
 
 ---
 
@@ -45,10 +52,10 @@ flowchart LR
 Five layers, left to right:
 
 1. **Signal sources** — website de-anonymization, own-content engagement, live hiring posts (scrape → LLM extract → domain resolve), a national-register open-data feed keyed by company ID, and the durable **past-client base** (a prior relationship never decays).
-2. **Warehouse** — one Postgres source of truth. Every other tool *mirrors* it, so there's no vendor lock-in and the data stays clean. Views are the API the automations read.
+2. **Warehouse** — one Postgres source of truth. Every other tool *mirrors* it, so there's no vendor lock-in and the data stays clean. Views are the API the automations read. Why a warehouse *next to* a perfectly good CRM: [`docs/consolidation.md`](docs/consolidation.md).
 3. **Scoring brain** — the decision layer (below).
 4. **Routing** — two lanes: cold → machine, hot → human.
-5. **Execution & feedback** — sequencer, CRM write-back (every touch logged), a cooldown ledger, and a planned reweighting loop.
+5. **Execution & feedback** — one multichannel sequencer (consolidated down from three tools — the migration and its landmines: [`docs/consolidation.md`](docs/consolidation.md)), CRM write-back on every touch, a cooldown ledger — and the reply side, designed end-to-end in the sibling repo **[agentic-reply-engine](https://github.com/Miksh21/agentic-reply-engine)**: 12 reply routes, 11 autonomous, plus the reweighting loop this repo's roadmap promised.
 
 ---
 
@@ -70,7 +77,7 @@ See [`docs/signal-model.md`](docs/signal-model.md) and [`examples/scoring.sql`](
 
 ---
 
-## Five decisions I'm proud of
+## Seven decisions I'm proud of
 
 The build was fast. These are the calls that made it *good* — and they're the difference between a builder and a reckless AI-tinkerer.
 
@@ -78,7 +85,9 @@ The build was fast. These are the calls that made it *good* — and they're the 
 2. **Don't AI a boolean.** "Is there an open deal?" is a database question — instant, free, auditable, identical every run. The LLM is reserved for the one job only it can do: interpreting free-text. Cheaper, and it can't hallucinate a wrong answer to a question the data already knows.
 3. **Legal-first.** Before building a competitor-displacement feature, I researched the relevant unfair-competition statutes — and **parked the feature pending a lawyer's sign-off.** Then redesigned it to run entirely on *public* data so it stays clean. Shipping fast is worth nothing if it ships a liability.
 4. **Decay + stacking** so scarce human attention is only spent on accounts with real, corroborated intent — never a single stray signal.
-5. **Warehouse-as-truth.** The data model owns the logic (scoring lives in the database as views/functions); the tools are interchangeable front-ends. Swap the sequencer, swap the CRM — the brain doesn't move.
+5. **Warehouse-as-truth.** The data model owns the logic (scoring lives in the database as views/functions); the tools are interchangeable front-ends. Swap the sequencer, swap the CRM — the brain doesn't move. (This is the decision that later made the [three-tools-to-one consolidation](docs/consolidation.md) a migration script instead of a re-architecture.)
+6. **Tag the machine's own footprints.** Every activity the engine writes back to the CRM carries a 🤖 marker — and the "human touched this account recently" suppression rule *excludes* marked activities. Without that, the system reads its own write-backs as human touches and suppresses itself into silence.
+7. **Let the platform's limits fix your sprawl.** The new sequencer capped inboxes per sender at 5; the old stack had drifted to 10. Instead of fighting the cap, it became the forcing function: rank by warmup health, keep the best five, drop the rest.
 
 More in [`docs/decisions.md`](docs/decisions.md).
 
@@ -96,7 +105,11 @@ I'd rather show the real edges than pretend it's done. ([full roadmap](docs/road
 
 ## Stack
 
-Postgres warehouse · a workflow engine for orchestration (running 24/7, not on a laptop) · an LLM for extraction and free-text judgment · a neural search API for entity resolution · a CRM and an email/LinkedIn sequencer as interchangeable front-ends · national-register open data.
+**Supabase/Postgres** warehouse · **n8n** orchestration (self-hosted, running 24/7, not on a laptop) · **Claude** for extraction and free-text judgment · **Exa** for entity resolution and why-now research · **lemlist** as the one multichannel sequencer (consolidated from **Instantly + HeyReach + Clay** — [the migration](docs/consolidation.md)) · **Deepline** for code-first enrichment plays (the Clay successor — pay-per-run, typically under €80/mo against a ~€350 seat) · the CRM as the deals-and-customers system of record · national-register open data.
+
+## Siblings
+
+- **[agentic-reply-engine](https://github.com/Miksh21/agentic-reply-engine)** — the reply half: everything that happens after a prospect answers. 12 routes, 11 autonomous, one human — plus the message ledger and the learning loop that closes this repo's feedback arrow.
 
 ---
 

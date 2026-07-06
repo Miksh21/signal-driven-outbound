@@ -1,4 +1,4 @@
-# Five decisions I'm proud of
+# Seven decisions I'm proud of
 
 Building fast is easy. These are the calls that made the system *good* — and most of them were about choosing restraint.
 
@@ -27,6 +27,18 @@ The decay-and-stacking math has one job: make sure a person is only ever pointed
 ## 5 · The data model owns the logic
 
 Scoring, gating, and health metrics live **in the warehouse** as views and functions — not inside any tool. The tools (CRM, sequencer, workflow engine) are interchangeable front-ends that read those views. This is the opposite of the usual "logic trapped inside a SaaS" trap: the intelligence is portable, the vendors are disposable, and the data stays consistent because there's exactly one place it's computed.
+
+## 6 · Tag the machine's own footprints
+
+The gate suppresses any account a human touched in the last 60 days — correct, and a trap. The engine *also* writes activities back to the CRM on every automated touch (so reps see the full history). Untagged, those write-backs look exactly like human touches to the gate — and the system reads its own footprints as "a rep owns this," suppressing itself into silence, account by account, until nothing sends and nothing errors.
+
+The fix is one convention: every machine-written activity carries a **🤖 marker prefix**, and the human-touch query excludes marked rows. Trivial to implement, invisible until you need it — and the class of bug it prevents (a feedback loop reading its own output as input) is one of the defining failure modes of agentic systems. If your automation writes to a system it also reads, **the write must be distinguishable from the world.**
+
+## 7 · Let the platform's limits fix your sprawl
+
+During the [sequencer consolidation](consolidation.md), the new platform capped sending inboxes at 5 per seat. The old stack had drifted to **10 inboxes per sender** — volume-spreading from the blast era — plus 18 dead mailboxes on lookalike domains. The instinct is to fight the cap (upgrade the plan, split seats). The better move was to treat it as a free consultant: rank each sender's inboxes by warmup health, keep the best five, drop the rest.
+
+The cap converted an open-ended cleanup debate ("which of these do we *really* need?") into a mechanical ranking exercise with a deadline. Constraints from outside are sometimes the only thing that gets accumulated debt actually deleted — the same reason the migration rebuilt only the **2 live campaigns out of 86** and left the dead weight in the old tools.
 
 ---
 
