@@ -55,7 +55,7 @@ Five layers, left to right:
 2. **Warehouse** — one Postgres source of truth. Every other tool *mirrors* it, so there's no vendor lock-in and the data stays clean. Views are the API the automations read. Why a warehouse *next to* a perfectly good CRM: [`docs/consolidation.md`](docs/consolidation.md).
 3. **Scoring brain** — the decision layer (below).
 4. **Routing** — two lanes: cold → machine, hot → human.
-5. **Execution & feedback** — one multichannel sequencer (consolidated down from three tools — the migration and its landmines: [`docs/consolidation.md`](docs/consolidation.md)), CRM write-back on every touch, a cooldown ledger — and the reply side, designed end-to-end in the sibling repo **[agentic-reply-engine](https://github.com/Miksh21/agentic-reply-engine)**: 12 reply routes, 11 autonomous, plus the reweighting loop this repo's roadmap promised.
+5. **Execution & feedback** — one multichannel sequencer (consolidated down from three tools — the migration and its landmines: [`docs/consolidation.md`](docs/consolidation.md)), CRM write-back on every touch, a cooldown ledger — and the reply side, which has its own repo: **[agentic-reply-engine](https://github.com/Miksh21/agentic-reply-engine)** — 12 reply routes, 11 autonomous, plus the learning loop that closes this diagram's feedback arrow.
 
 ---
 
@@ -93,19 +93,19 @@ More in [`docs/decisions.md`](docs/decisions.md).
 
 ---
 
-## What's honestly unfinished
+## Shipped, and what's next
 
-I'd rather show the real edges than pretend it's done. ([full roadmap](docs/roadmap.md))
+The full inventory of what's running — warehouse, scoring views, signal capture, the 3-tier gate, the distributor, localized copy, the consolidated sequencer, the reply side — plus the expansion list, lives in [docs/roadmap.md](docs/roadmap.md).
 
-**Upstream (capture):** the open-data vacancy ingest is designed but not wired (it's the biggest, cleanest source); net-new companies need automated register-lookup tiering; the competitive layer is parked pending counsel.
-
-**Downstream (close):** the cold lane is built and tested but held inactive until capture is live; the outcome-based reweighting loop needs ~30–50 closes before it means anything; a CRM de-duplication pass is generated but awaits a human owner-assignment review.
+The next moves all widen **capture**: the open-data vacancy ingest (the cleanest source becomes the primary one), automated net-new tiering, and contact-layer depth so every signal has a person to land on. One feature — the competitive-posture layer — is deliberately **parked pending legal sign-off**, and stays parked until counsel clears it.
 
 ---
 
 ## Stack
 
 **Supabase/Postgres** warehouse · **n8n** orchestration (self-hosted, running 24/7, not on a laptop) · **Claude** for extraction and free-text judgment · **Exa** for entity resolution and why-now research · **lemlist** as the one multichannel sequencer (consolidated from **Instantly + HeyReach + Clay** — [the migration](docs/consolidation.md)) · **Deepline** for code-first enrichment plays (the Clay successor — pay-per-run, typically under €80/mo against a ~€350 seat) · the CRM as the deals-and-customers system of record · national-register open data.
+
+The operating surface is deliberately **the terminal**: because all state lives in the warehouse and all logic in views, **Claude Code** works as the ops console — plain-English audits ("which accounts went HOT this week and why"), signal-pipeline spot-checks, and campaign builds against the sequencer's API, no dashboard in between. The tools execute; the warehouse decides; the terminal is where you talk to it.
 
 ## Siblings
 
